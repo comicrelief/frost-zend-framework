@@ -14,9 +14,9 @@
  *
  * @category   Zend
  * @package    Zend_Loader
- * @copyright  Copyright (c) 2005-2011 Zend Technologies USA Inc. (http://www.zend.com)
+ * @copyright  Copyright (c) 2005-2012 Zend Technologies USA Inc. (http://www.zend.com)
  * @license    http://framework.zend.com/license/new-bsd     New BSD License
- * @version    $Id$
+ * @version    $Id: Loader.php 24593 2012-01-05 20:35:02Z matthew $
  */
 
 /**
@@ -24,7 +24,7 @@
  *
  * @category   Zend
  * @package    Zend_Loader
- * @copyright  Copyright (c) 2005-2011 Zend Technologies USA Inc. (http://www.zend.com)
+ * @copyright  Copyright (c) 2005-2012 Zend Technologies USA Inc. (http://www.zend.com)
  * @license    http://framework.zend.com/license/new-bsd     New BSD License
  */
 class Zend_Loader
@@ -60,19 +60,7 @@ class Zend_Loader
             throw new Zend_Exception('Directory argument must be a string or an array');
         }
 
-        // Autodiscover the path from the class name
-        // Implementation is PHP namespace-aware, and based on
-        // Framework Interop Group reference implementation:
-        // http://groups.google.com/group/php-standards/web/psr-0-final-proposal
-        $className = ltrim($class, '\\');
-        $file      = '';
-        $namespace = '';
-        if ($lastNsPos = strripos($className, '\\')) {
-            $namespace = substr($className, 0, $lastNsPos);
-            $className = substr($className, $lastNsPos + 1);
-            $file      = str_replace('\\', DIRECTORY_SEPARATOR, $namespace) . DIRECTORY_SEPARATOR;
-        }
-        $file .= str_replace('_', DIRECTORY_SEPARATOR, $className) . '.php';
+        $file = self::standardiseFile($class);
 
         if (!empty($dirs)) {
             // use the autodiscovered path
@@ -159,36 +147,6 @@ class Zend_Loader
     }
 
     /**
-     * The readable cache
-     * 
-     * @var Zend_Cache_Backend_ExtendedInterface
-     */
-    protected static $_readableCache = null;
-
-    /**
-     * Get the readable cache
-     * 
-     * @return Zend_Cache_Backend_ExtendedInterface
-     */
-    public static function getReadableCache()
-    {
-        if (self::$_readableCache === null) {
-            self::$_readableCache = new Zend_Cache_Backend_Apc();
-        }
-        return self::$_readableCache;
-    }
-
-    /**
-     * Set the readable cache
-     * 
-     * @param Zend_Cache_Backend_ExtendedInterface $cache
-     */
-    public static function setReadableCache($cache)
-    {
-        self::$_readableCache = $cache;
-    }
-
-    /**
      * Returns TRUE if the $filename is readable, or FALSE otherwise.
      * This function uses the PHP include_path, where PHP's is_readable()
      * does not.
@@ -203,14 +161,9 @@ class Zend_Loader
      */
     public static function isReadable($filename)
     {
-        $cache = self::getReadableCache();
-        if (($readable = $cache->load($filename)) !== false) {
-            return (bool) $readable;
-        }
         if (is_readable($filename)) {
             // Return early if the filename is readable without needing the
             // include_path
-            $cache->save(true, $filename);
             return true;
         }
 
@@ -219,21 +172,21 @@ class Zend_Loader
         ) {
             // If on windows, and path provided is clearly an absolute path,
             // return false immediately
-            $cache->save(0, $filename);
             return false;
         }
 
         foreach (self::explodeIncludePath() as $path) {
             if ($path == '.') {
+                if (is_readable($filename)) {
+                    return true;
+                }
                 continue;
             }
             $file = $path . '/' . $filename;
             if (is_readable($file)) {
-                $cache->save(true, $filename);
                 return true;
             }
         }
-        $cache->save(0, $filename);
         return false;
     }
 
@@ -360,5 +313,31 @@ class Zend_Loader
         } else {
             return include $filespec ;
         }
+    }
+
+    /**
+     * Standardise the filename.
+     *
+     * Convert the supplied filename into the namespace-aware standard,
+     * based on the Framework Interop Group reference implementation:
+     * http://groups.google.com/group/php-standards/web/psr-0-final-proposal
+     *
+     * The filename must be formatted as "$file.php".
+     *
+     * @param string $file - The file name to be loaded.
+     * @return string
+     */
+    public static function standardiseFile($file)
+    {
+        $fileName = ltrim($file, '\\');
+        $file      = '';
+        $namespace = '';
+        if ($lastNsPos = strripos($fileName, '\\')) {
+            $namespace = substr($fileName, 0, $lastNsPos);
+            $fileName = substr($fileName, $lastNsPos + 1);
+            $file      = str_replace('\\', DIRECTORY_SEPARATOR, $namespace) . DIRECTORY_SEPARATOR;
+        }
+        $file .= str_replace('_', DIRECTORY_SEPARATOR, $fileName) . '.php';
+        return $file;    
     }
 }
