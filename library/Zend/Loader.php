@@ -147,6 +147,57 @@ class Zend_Loader
     }
 
     /**
+     * The readable cache
+     * 
+     * @var Zend_Cache_Backend_ExtendedInterface
+     */
+    protected static $_readableCache = null;
+    protected static $_cacheNamespace = '';
+
+    /**
+     * Get the readable cache
+     * 
+     * @return Zend_Cache_Backend_ExtendedInterface
+     */
+    public static function getReadableCache()
+    {
+        if (self::$_readableCache === null) {
+            self::$_readableCache = new Zend_Cache_Backend_Apc();
+        }
+        return self::$_readableCache;
+    }
+
+    /**
+     * Set the readable cache
+     * 
+     * @param Zend_Cache_Backend_ExtendedInterface $cache
+     */
+    public static function setReadableCache($cache)
+    {
+        self::$_readableCache = $cache;
+    }
+
+    /**
+     * Get the cache namespace
+     * 
+     * @return string
+     */
+    public static function getCacheNamespace()
+    {
+        return self::$_cacheNamespace;
+    }
+
+    /**
+     * Set the cache namespace
+     * 
+     * @param string $namespace
+     */
+    public static function setCacheNamespace($namespace)
+    {
+        self::$_cacheNamespace = $namespace;
+    }
+
+    /**
      * Returns TRUE if the $filename is readable, or FALSE otherwise.
      * This function uses the PHP include_path, where PHP's is_readable()
      * does not.
@@ -161,9 +212,14 @@ class Zend_Loader
      */
     public static function isReadable($filename)
     {
+        $cache = self::getReadableCache();
+        if (($readable = $cache->load(self::getCacheNamespace().$filename)) !== false) {
+            return (bool) $readable;
+        }
         if (is_readable($filename)) {
             // Return early if the filename is readable without needing the
             // include_path
+            $cache->save(true, $filename);
             return true;
         }
 
@@ -172,21 +228,21 @@ class Zend_Loader
         ) {
             // If on windows, and path provided is clearly an absolute path,
             // return false immediately
+            $cache->save(0, $filename);
             return false;
         }
 
         foreach (self::explodeIncludePath() as $path) {
             if ($path == '.') {
-                if (is_readable($filename)) {
-                    return true;
-                }
                 continue;
             }
             $file = $path . '/' . $filename;
             if (is_readable($file)) {
+                $cache->save(true, $filename);
                 return true;
             }
         }
+        $cache->save(0, $filename);
         return false;
     }
 
