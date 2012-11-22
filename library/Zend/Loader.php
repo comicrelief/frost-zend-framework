@@ -213,13 +213,14 @@ class Zend_Loader
     public static function isReadable($filename)
     {
         $cache = self::getReadableCache();
-        if (($readable = $cache->load(self::getCacheNamespace().$filename)) !== false) {
+        $cacheKey = self::getCacheNamespace().$filename;
+        if (($readable = $cache->load($cacheKey)) !== false) {
             return (bool) $readable;
         }
         if (is_readable($filename)) {
             // Return early if the filename is readable without needing the
             // include_path
-            $cache->save(true, $filename);
+            $cache->save(true, $cacheKey);
             return true;
         }
 
@@ -228,7 +229,7 @@ class Zend_Loader
         ) {
             // If on windows, and path provided is clearly an absolute path,
             // return false immediately
-            $cache->save(0, $filename);
+            $cache->save(0, $cacheKey);
             return false;
         }
 
@@ -238,11 +239,11 @@ class Zend_Loader
             }
             $file = $path . '/' . $filename;
             if (is_readable($file)) {
-                $cache->save(true, $filename);
+                $cache->save(true, $cacheKey);
                 return true;
             }
         }
-        $cache->save(0, $filename);
+        $cache->save(0, $cacheKey);
         return false;
     }
 
