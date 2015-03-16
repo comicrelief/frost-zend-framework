@@ -1,0 +1,19 @@
+{
+    "name": "frost/zf1",
+    "description": "Zend Framework 1.12 with FROST patches",
+    "minimum-stability": "stable",
+    "require": {
+        "php": ">=5.2.4"
+    },
+    "autoload": {
+        "psr-0": {
+            "Zend": "library/"
+        }
+    },
+    "include-path": [
+        "library/"
+    ],
+    "config": {
+        "bin-dir": "bin"
+    }
+}
