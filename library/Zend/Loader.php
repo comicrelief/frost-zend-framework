@@ -162,7 +162,7 @@ class Zend_Loader
     public static function getReadableCache()
     {
         if (self::$_readableCache === null) {
-            self::$_readableCache = new Zend_Cache_Backend_Apc();
+            self::$_readableCache = new Zend_Cache_Backend_BlackHole();
         }
         return self::$_readableCache;
     }
